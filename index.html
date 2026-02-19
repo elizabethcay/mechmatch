@@ -1,1 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mechanics Matcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e8e5e0;
+    --border-light: #f0ede8;
+    --text: #1a1915;
+    --text-secondary: #6b6860;
+    --text-muted: #a09d97;
+    --accent: #2d2d2a;
+    --correct: #3a7d44;
+    --wrong: #b5432a;
+    --heart: #c94040;
+    --tag-newton: #1a4a6b;
+    --tag-lagrange: #4a1a6b;
+    --tag-hamilton: #1a6b4a;
+    --tag-quantum: #6b4a1a;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 80px;
+  }
+
+  /* Top bar */
+  .topbar {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-family: 'Lora', serif;
+    font-size: 15px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  .logo span { color: var(--text); font-weight: 600; }
+
+  .new-game-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.01em;
+  }
+
+  .new-game-btn:hover {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+
+  /* Status bar */
+  .status-bar {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .hearts {
+    display: flex;
+    gap: 6px;
+  }
+
+  .heart {
+    font-size: 18px;
+    transition: all 0.3s ease;
+    filter: none;
+  }
+
+  .heart.lost {
+    filter: grayscale(1) opacity(0.25);
+    transform: scale(0.85);
+  }
+
+  .heart.shake {
+    animation: heartShake 0.4s ease;
+  }
+
+  @keyframes heartShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px) scale(0.9); }
+    50% { transform: translateX(4px) scale(1.1); }
+    80% { transform: translateX(-2px); }
+  }
+
+  .score-display {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .score-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .score-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Question counter */
+  .question-counter {
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Card */
+  .card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 56px;
+    margin-bottom: 28px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: border-color 0.3s ease;
+  }
+
+  .card.correct-flash {
+    border-color: var(--correct);
+    animation: correctPulse 0.5s ease;
+  }
+
+  .card.wrong-flash {
+    border-color: var(--wrong);
+    animation: wrongPulse 0.5s ease;
+  }
+
+  @keyframes correctPulse {
+    0% { background: var(--surface); }
+    40% { background: #f0faf2; }
+    100% { background: var(--surface); }
+  }
+
+  @keyframes wrongPulse {
+    0% { background: var(--surface); }
+    40% { background: #fdf2f0; }
+    100% { background: var(--surface); }
+  }
+
+  .equation-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 20px;
+    align-self: flex-start;
+  }
+
+  .equation-display {
+    font-size: 22px;
+    text-align: center;
+    line-height: 1.8;
+    color: var(--text);
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .equation-name {
+    margin-top: 16px;
+    font-family: 'Lora', serif;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-muted);
+    text-align: center;
+    align-self: center;
+  }
+
+  /* Feedback badge */
+  .feedback {
+    width: 100%;
+    max-width: 680px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .feedback-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.25s ease;
+    pointer-events: none;
+  }
+
+  .feedback-badge.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .feedback-badge.correct {
+    background: #edf7ef;
+    color: var(--correct);
+    border: 1px solid #c3e6cb;
+  }
+
+  .feedback-badge.wrong {
+    background: #fdecea;
+    color: var(--wrong);
+    border: 1px solid #f5c6c2;
+  }
+
+  /* Buttons */
+  .choices {
+    width: 100%;
+    max-width: 680px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .choice-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.4;
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: #f8f8f7;
+    transform: translateY(-1px);
+  }
+
+  .choice-btn:disabled { cursor: default; }
+
+  .choice-btn .tag {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    font-weight: 400;
+  }
+
+  .choice-btn[data-type="Newtonian"] .tag { background: #ddeaf5; color: var(--tag-newton); }
+  .choice-btn[data-type="Lagrangian"] .tag { background: #edddf5; color: var(--tag-lagrange); }
+  .choice-btn[data-type="Hamiltonian"] .tag { background: #ddf5ec; color: var(--tag-hamilton); }
+  .choice-btn[data-type="Quantum"] .tag { background: #f5ecdd; color: var(--tag-quantum); }
+
+  .choice-btn.highlight-correct {
+    border-color: var(--correct);
+    background: #edf7ef;
+    color: var(--correct);
+  }
+
+  .choice-btn.highlight-wrong {
+    border-color: var(--wrong);
+    background: #fdecea;
+    color: var(--wrong);
+  }
+
+  /* Game over overlay */
+  .game-over {
+    display: none;
+    width: 100%;
+    max-width: 680px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 56px;
+    text-align: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .game-over.show { display: flex; }
+
+  .game-over h2 {
+    font-family: 'Lora', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .game-over p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .final-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 48px;
+    color: var(--text);
+    margin: 8px 0;
+  }
+
+  .play-again-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--surface);
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s ease;
+  }
+
+  .play-again-btn:hover { opacity: 0.8; }
+
+  /* Divider */
+  .divider {
+    width: 100%;
+    max-width: 680px;
+    border: none;
+    border-top: 1px solid var(--border-light);
+    margin: 8px 0 20px;
+  }
+
+  .next-label {
+    width: 100%;
+    max-width: 680px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+
+  @media (max-width: 480px) {
+    .card { padding: 32px 24px; }
+    .choices { grid-template-columns: 1fr; }
+  }
+
+  .footer {
+    margin-top: 48px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><span>Mechanics Matcher</span></div>
+  <button class="new-game-btn" onclick="newGame()">↺ New Game</button>
+</div>
+
+<div class="status-bar">
+  <div class="hearts" id="hearts"></div>
+  <div class="score-display">
+    <span class="score-num" id="scoreNum">0</span>
+    <span class="score-label">pts</span>
+  </div>
+</div>
+
+<div class="question-counter" id="questionCounter">Question 1</div>
+
+<div class="card" id="card">
+  <div class="equation-hint">Identify the framework</div>
+  <div class="equation-display" id="equationDisplay">Loading...</div>
+  <div class="equation-name" id="equationName"></div>
+</div>
+
+<div class="feedback" id="feedback">
+  <div class="feedback-badge" id="feedbackBadge"></div>
+</div>
+
+<div class="choices" id="choices"></div>
+
+<hr class="divider">
+<div class="next-label" id="nextLabel">Choose your answer above</div>
+
+<div class="game-over" id="gameOver">
+  <h2>Game Over</h2>
+  <p>You've run out of lives. Here's how you did:</p>
+  <div class="final-score" id="finalScore">0</div>
+  <p style="font-size:13px; color: var(--text-muted)">points scored</p>
+  <button class="play-again-btn" onclick="newGame()">Play Again</button>
+</div>
+
+<div class="footer">© 2026 Elizabeth Cay</div>
+
+<script>
+const EQUATIONS = [
+  // Newtonian
+  { tex: '\\mathbf{F} = m\\mathbf{a}', name: "Newton's Second Law", type: 'Newtonian' },
+  { tex: '\\mathbf{F}_{12} = -\\mathbf{F}_{21}', name: "Newton's Third Law", type: 'Newtonian' },
+  { tex: 'F_g = \\dfrac{Gm_1 m_2}{r^2}', name: "Law of Universal Gravitation", type: 'Newtonian' },
+  { tex: 'W = \\int \\mathbf{F} \\cdot d\\mathbf{r}', name: "Work-Energy Theorem", type: 'Newtonian' },
+  { tex: '\\tau = I\\alpha', name: "Rotational Analogue of Newton's 2nd Law", type: 'Newtonian' },
+  { tex: '\\mathbf{p} = m\\mathbf{v}', name: "Linear Momentum", type: 'Newtonian' },
+  { tex: 'E_k = \\tfrac{1}{2}mv^2', name: "Kinetic Energy", type: 'Newtonian' },
+  { tex: 'x(t) = x_0 + v_0 t + \\tfrac{1}{2}at^2', name: "Kinematic Equation", type: 'Newtonian' },
+
+  // Lagrangian
+  { tex: '\\mathcal{L} = T - V', name: "The Lagrangian", type: 'Lagrangian' },
+  { tex: '\\dfrac{d}{dt}\\dfrac{\\partial \\mathcal{L}}{\\partial \\dot{q}_i} - \\dfrac{\\partial \\mathcal{L}}{\\partial q_i} = 0', name: "Euler–Lagrange Equation", type: 'Lagrangian' },
+  { tex: 'S = \\int_{t_1}^{t_2} \\mathcal{L}\\, dt', name: "Action Integral", type: 'Lagrangian' },
+  { tex: 'p_i = \\dfrac{\\partial \\mathcal{L}}{\\partial \\dot{q}_i}', name: "Generalized Momentum", type: 'Lagrangian' },
+  { tex: '\\delta S = 0', name: "Principle of Stationary Action", type: 'Lagrangian' },
+  { tex: '\\mathcal{L} = \\tfrac{1}{2}m\\dot{x}^2 - \\tfrac{1}{2}kx^2', name: "Lagrangian of a Spring", type: 'Lagrangian' },
+
+  // Hamiltonian
+  { tex: 'H = T + V', name: "The Hamiltonian", type: 'Hamiltonian' },
+  { tex: '\\dot{q}_i = \\dfrac{\\partial H}{\\partial p_i}', name: "Hamilton's Equation (position)", type: 'Hamiltonian' },
+  { tex: '\\dot{p}_i = -\\dfrac{\\partial H}{\\partial q_i}', name: "Hamilton's Equation (momentum)", type: 'Hamiltonian' },
+  { tex: '\\{f,g\\} = \\sum_i \\left(\\dfrac{\\partial f}{\\partial q_i}\\dfrac{\\partial g}{\\partial p_i} - \\dfrac{\\partial f}{\\partial p_i}\\dfrac{\\partial g}{\\partial q_i}\\right)', name: "Poisson Bracket", type: 'Hamiltonian' },
+  { tex: '\\dfrac{dA}{dt} = \\{A, H\\} + \\dfrac{\\partial A}{\\partial t}', name: "Time Evolution via Poisson Bracket", type: 'Hamiltonian' },
+  { tex: 'H = \\dfrac{p^2}{2m} + V(q)', name: "Hamiltonian of a Particle", type: 'Hamiltonian' },
+
+  // Quantum
+  { tex: 'i\\hbar\\dfrac{\\partial}{\\partial t}\\Psi = \\hat{H}\\Psi', name: "Schrödinger Equation", type: 'Quantum' },
+  { tex: '[\\hat{x}, \\hat{p}] = i\\hbar', name: "Canonical Commutation Relation", type: 'Quantum' },
+  { tex: '\\Delta x\\, \\Delta p \\geq \\dfrac{\\hbar}{2}', name: "Heisenberg Uncertainty Principle", type: 'Quantum' },
+  { tex: '\\hat{H}\\psi_n = E_n\\psi_n', name: "Time-Independent Schrödinger Eq.", type: 'Quantum' },
+  { tex: '\\langle A \\rangle = \\langle \\psi | \\hat{A} | \\psi \\rangle', name: "Quantum Expectation Value", type: 'Quantum' },
+  { tex: 'E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)', name: "Quantum Harmonic Oscillator Energy", type: 'Quantum' },
+  { tex: '\\Psi(x,t) = \\sum_n c_n \\psi_n(x)\\, e^{-iE_n t/\\hbar}', name: "General Quantum State", type: 'Quantum' },
+];
+
+const TYPES = ['Newtonian', 'Lagrangian', 'Hamiltonian', 'Quantum'];
+
+let state = { score: 0, lives: 5, questionNum: 0, current: null, answered: false, usedIndices: [] };
+
+function newGame() {
+  state = { score: 0, lives: 5, questionNum: 0, current: null, answered: false, usedIndices: [] };
+  document.getElementById('gameOver').classList.remove('show');
+  document.getElementById('card').style.display = '';
+  document.getElementById('choices').style.display = '';
+  document.getElementById('feedback').style.display = '';
+  renderHearts();
+  renderScore();
+  nextQuestion();
+}
+
+function renderHearts() {
+  const container = document.getElementById('hearts');
+  container.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const h = document.createElement('span');
+    h.className = 'heart' + (i >= state.lives ? ' lost' : '');
+    h.textContent = '♥';
+    container.appendChild(h);
+  }
+}
+
+function renderScore() {
+  document.getElementById('scoreNum').textContent = state.score;
+}
+
+function nextQuestion() {
+  state.answered = false;
+  state.questionNum++;
+  document.getElementById('questionCounter').textContent = `Question ${state.questionNum}`;
+  document.getElementById('nextLabel').textContent = 'Choose your answer above';
+
+  // Clear feedback
+  const badge = document.getElementById('feedbackBadge');
+  badge.className = 'feedback-badge';
+  badge.textContent = '';
+
+  // Reset card
+  const card = document.getElementById('card');
+  card.className = 'card';
+
+  // Pick unused equation
+  let available = EQUATIONS.map((_, i) => i).filter(i => !state.usedIndices.includes(i));
+  if (available.length === 0) { state.usedIndices = []; available = EQUATIONS.map((_, i) => i); }
+  const idx = available[Math.floor(Math.random() * available.length)];
+  state.usedIndices.push(idx);
+  state.current = EQUATIONS[idx];
+
+  // Display equation — clear MathJax state before re-render
+  const eqEl = document.getElementById('equationDisplay');
+  if (window.MathJax) MathJax.typesetClear([eqEl]);
+  eqEl.innerHTML = `\\(${state.current.tex}\\)`;
+  document.getElementById('equationName').textContent = '';
+
+  // Render choices
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  const shuffled = [...TYPES].sort(() => Math.random() - 0.5);
+  shuffled.forEach(type => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.dataset.type = type;
+    btn.innerHTML = `<span class="tag">${type.slice(0,3)}</span><span>${type} Mechanics</span>`;
+    btn.onclick = () => handleAnswer(type, btn);
+    choicesEl.appendChild(btn);
+  });
+
+  if (window.MathJax) MathJax.typesetPromise([eqEl]);
+}
+
+function handleAnswer(chosen, btn) {
+  if (state.answered) return;
+  state.answered = true;
+
+  const correct = chosen === state.current.type;
+  const card = document.getElementById('card');
+  const badge = document.getElementById('feedbackBadge');
+
+  // Disable all buttons, highlight
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.type === state.current.type) b.classList.add('highlight-correct');
+    else if (b === btn && !correct) b.classList.add('highlight-wrong');
+  });
+
+  // Show equation name
+  document.getElementById('equationName').textContent = state.current.name;
+
+  if (correct) {
+    state.score++;
+    renderScore();
+    card.classList.add('correct-flash');
+    badge.textContent = '✓ Correct!';
+    badge.className = 'feedback-badge correct visible';
+    document.getElementById('nextLabel').textContent = 'Next question in 1.5s…';
+    setTimeout(nextQuestion, 1500);
+  } else {
+    state.lives--;
+    // Shake the heart that's about to be lost (index = state.lives, 0-based)
+    const heartsBeforeRender = document.querySelectorAll('.heart');
+    if (heartsBeforeRender[state.lives]) {
+      heartsBeforeRender[state.lives].classList.add('shake');
+    }
+    setTimeout(() => renderHearts(), 150);
+    renderScore();
+    card.classList.add('wrong-flash');
+    badge.textContent = `✗ That was ${state.current.type} Mechanics`;
+    badge.className = 'feedback-badge wrong visible';
+
+    if (state.lives <= 0) {
+      document.getElementById('nextLabel').textContent = 'Game over!';
+      setTimeout(showGameOver, 1600);
+    } else {
+      document.getElementById('nextLabel').textContent = 'Next question in 2s…';
+      setTimeout(nextQuestion, 2000);
+    }
+  }
+}
+
+function showGameOver() {
+  document.getElementById('gameOver').classList.add('show');
+  document.getElementById('card').style.display = 'none';
+  document.getElementById('choices').style.display = 'none';
+  document.getElementById('finalScore').textContent = state.score;
+}
+
+newGame();
+</script>
+</body>
+</html>
