@@ -19,6 +19,7 @@ Each round displays a rendered equation. Select the framework you think it belon
 
 Plain HTML, CSS, and JavaScript. MathJax CDN for equation rendering. No dependencies to install.
 
-## license
+## license & link
 
-© 2026 Elizabeth Cay
+Elizabeth Cay © 2026 <br>
+[Netlify Link](mechmatch.netlify.app)
