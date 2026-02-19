@@ -21,5 +21,4 @@ Plain HTML, CSS, and JavaScript. MathJax CDN for equation rendering. No dependen
 
 ## license & link
 
-Elizabeth Cay © 2026 <br>
-[Netlify Link](mechmatch.netlify.app)
+Elizabeth Cay © 2026
